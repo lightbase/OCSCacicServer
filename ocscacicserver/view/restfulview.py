@@ -1,6 +1,7 @@
 import json
 import zipfile
 import uuid
+import re
 from pyramid.response import Response
 from ocscacicserver.model import session, tmp_dir
 from logging import getLogger
@@ -50,34 +51,64 @@ def viewcoleta(request):
     # CREATE INDEX idx_id_computador ON computador_coleta(id_computador);
     if request.params.get('limit') is None:
         stmt1 = """
-        SELECT id
-        FROM hardware
-        ORDER BY id DESC;
+        SELECT h.id as hardware_id,
+                h.osname as operatingsystem_caption,
+                h.osversion as operatingsystem_version,
+                h.processort as win32_processor_caption,
+                c.id as cpu_id,
+                c.manufacturer as win32_processor_manufacturer,
+                c.cores as win32_processor_numberoflogicalprocessors,
+                c.speed as win32_processor_maxclockspeed,
+                c.type as win32_processor_family,
+                b.bmanufacturer as win32_bios_manufacturer,
+                m.id as memory_id,
+                m.type as win32_physicalmemory_memorytype,
+                m.capacity as win32_physicalmemory_capacity,
+                s.id as storage_id,
+                s.name as win32_diskdrive_caption,
+                s.model as win32_diskdrive_model,
+                s.disksize as win32_diskdrive_size
+        FROM hardware h
+        LEFT JOIN cpus c ON h.id = c.hardware_id
+        LEFT JOIN bios b ON b.hardware_id = h.id
+        LEFT JOIN memories m ON h.id = m.hardware_id
+        LEFT JOIN storages s ON h.id = s.hardware_id
+        ORDER BY h.id DESC;
         """
     else:
         stmt1 = """
-            SELECT id
-            FROM hardware
-            ORDER BY id DESC
+            SELECT h.id as hardware_id,
+                    h.osname as operatingsystem_caption,
+                    h.osversion as operatingsystem_version,
+                    h.processort as win32_processor_caption,
+                    c.id as cpu_id,
+                    c.manufacturer as win32_processor_manufacturer,
+                    c.cores as win32_processor_numberoflogicalprocessors,
+                    c.speed as win32_processor_maxclockspeed,
+                    c.type as win32_processor_family,
+                    b.bmanufacturer as win32_bios_manufacturer,
+                    m.id as memory_id,
+                    m.type as win32_physicalmemory_memorytype,
+                    m.capacity as win32_physicalmemory_capacity,
+                    s.id as storage_id,
+                    s.name as win32_diskdrive_caption,
+                    s.model as win32_diskdrive_model,
+                    s.disksize as win32_diskdrive_size
+            FROM hardware h
+            LEFT JOIN cpus c ON h.id = c.hardware_id
+            LEFT JOIN bios b ON b.hardware_id = h.id
+            LEFT JOIN memories m ON h.id = m.hardware_id
+            LEFT JOIN storages s ON h.id = s.hardware_id
+            ORDER BY h.id DESC
             LIMIT {};
             """.format(request.params.get('limit'))
 
     computer_ids = session.execute(stmt1)
 
     stmt2 = """
-        SELECT classe.nm_class_name,
-               cp.nm_property_name,
-               cc.te_class_property_value,
-               pr.display_name
-        FROM computador_coleta AS cc
-            INNER JOIN class_property as cp ON (cc.id_class_property =
-                cp.id_class_property)
-            INNER JOIN classe ON (classe.id_class = cp.id_class)
-            LEFT JOIN proriedade_software pr ON (
-              cp.id_class_property = pr.id_class_property
-              AND cc.id_computador = pr.id_computador)
-        WHERE cc.id_computador = {}
-        AND classe.nm_class_name IN {};
+        SELECT name
+        FROM softwares
+        WHERE hardware_id = {};
         """
 
     with open(json_file, 'w') as f:
@@ -86,11 +117,13 @@ def viewcoleta(request):
 
         count = computer_ids.rowcount
 
-        for (id_computador, ) in computer_ids.fetchall():
+        for computer in computer_ids.fetchall():
 
-            computer_attributes = session.execute(
-                stmt2.format(id_computador, FILTER_KEYS)).fetchall()
-            computer_json = build_computer_json(computer_attributes)
+            software_list = session.execute(
+                stmt2.format(computer.hardware_id, FILTER_KEYS)
+            ).fetchall()
+
+            computer_json = build_computer_json(computer, software_list)
 
             f.write(computer_json)
             count -= 1
@@ -118,7 +151,7 @@ def viewcoleta(request):
         )
 
 
-def build_computer_json(computer_group):
+def build_computer_json(computer_group, software_list):
 
     computer = {
         "OperatingSystem".lower(): {},
@@ -129,44 +162,23 @@ def build_computer_json(computer_group):
         "SoftwareList".lower(): []
     }
 
-    # FIXME: Arrumar uma forma melhor de definir os atributos que devem ser somados
-    somar = [
-        "NumberOfLogicalProcessors".lower(),
-        "Capacity".lower()
-    ]
+    # Primeiro trata dos softwares
+    for software in software_list:
+        if software.name.lower().find('office') > -1:
+            # Adiciona somente os que forem Office
+            computer["SoftwareList".lower()].append(software.name)
 
-    for class_, property_, property_value, display_name in computer_group:
-
-        if class_ == 'SoftwareList':
-            if display_name is not None and \
-                    display_name.lower().find('office') > -1:
-                computer[class_.lower()].append(display_name)
-            #elif property_.lower().find('microsoft') > -1:
-            #    computer[class_].append(property_)
-            continue
-
-        elif property_.lower() not in COMPUTER_FILTER[class_]:
-            continue
-
-        else:
-            prefixed_property = class_ + '_' + property_
-
-            # Fix no valor da propriedade quando mutivalorado
-            p = property_value.split("[[REG]]")
-            if type(p) == list and len(p) > 0:
-                saida = int()
-                for value in p:
-                    if value.isdigit():
-                        if property_.lower() in somar:
-                            log.debug(value)
-                            saida += int(value)
-                        else:
-                            saida = int(value)
-                    else:
-                        saida = value
-                property_value = saida
-
-            computer[class_.lower()][prefixed_property.lower()] = property_value
+    for column in computer_group.keys():
+        # Organiza um dicionário organizado por colunas
+        regex = re.compile("^(.*)_(.+)$")
+        r = regex.findall(column)
+        if len(r) > 0:
+            elm = r[0]
+            class_ = elm[0]
+            property_ = elm[1]
+            if class_ in computer.keys():
+                # Adiciona no JSON somente se a classe estiver registrada acima
+                computer[class_][property_] = computer_group[column]
 
     return json.dumps(computer)
 
