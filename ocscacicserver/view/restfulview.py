@@ -180,10 +180,9 @@ def build_computer_json(computer_group, software_list):
             elm = r[0]
             class_ = elm[0]
             property_ = elm[1]
+            value = computer_group[column]
             # Adiciona no JSON somente se a classe estiver registrada acima
-            if class_ in computer.keys():
-                value = computer_group[column]
-
+            if class_ in computer.keys() and value is not None:
                 # Corrige para transformar valores em inteiroes
                 if type(value) != int and value is not None:
                     if value.isdigit():
