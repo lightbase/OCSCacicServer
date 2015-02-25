@@ -2,7 +2,7 @@ import json
 import zipfile
 import uuid
 from pyramid.response import Response
-from ..model import session, tmp_dir
+from ocscacicserver.model import session, tmp_dir
 from logging import getLogger
 
 FILE_BEGIN = '{"results":['
@@ -50,17 +50,15 @@ def viewcoleta(request):
     # CREATE INDEX idx_id_computador ON computador_coleta(id_computador);
     if request.params.get('limit') is None:
         stmt1 = """
-        SELECT id_computador
-        FROM computador_coleta
-        GROUP BY id_computador
-        ORDER BY id_computador DESC;
+        SELECT id
+        FROM hardware
+        ORDER BY id DESC;
         """
     else:
         stmt1 = """
-            SELECT id_computador
-            FROM computador_coleta
-            GROUP BY id_computador
-            ORDER BY id_computador DESC
+            SELECT id
+            FROM hardware
+            ORDER BY id DESC
             LIMIT {};
             """.format(request.params.get('limit'))
 

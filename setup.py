@@ -10,12 +10,10 @@ requires = [
     'pyramid',
     'SQLAlchemy',
     'pyramid_tm',
-    'pyramid_debugtoolbar',
-    'zope.sqlalchemy',
     'waitress',
     'requests',
-    'chameleon',
-    'ConfigParser'
+    'ConfigParser',
+    'pymysql',
 ]
 
 setup(name='OCSCacicServer',
