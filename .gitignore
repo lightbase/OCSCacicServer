@@ -52,3 +52,10 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Arquivos de configuração
+*.ini
+*.wsgi
+
+# Ignore pycharm
+.idea/
