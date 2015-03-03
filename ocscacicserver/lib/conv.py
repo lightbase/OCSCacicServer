@@ -8,7 +8,7 @@ def processor_converter(value):
     :param value: valor a procurar
     :return: 2 (Unknown)
     """
-    # FIXME: não encontrei uma forma de identificar o processor family no OCS
+    # FIXME: nao encontrei uma forma de identificar o processor family no OCS
 
     return 2
 
@@ -34,7 +34,7 @@ def memory_converter(value):
 
     saida = memory_types.get(value)
     if saida is None:
-        # Retorna 0 como padrão
+        # Retorna 0 como padrao
         saida = 0
 
     return saida

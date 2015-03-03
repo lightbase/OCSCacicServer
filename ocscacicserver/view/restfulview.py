@@ -170,7 +170,8 @@ def build_computer_json(computer_group, software_list):
     for software in software_list:
         if software.name.lower().find('office') > -1:
             # Adiciona somente os que forem Office
-            computer["SoftwareList".lower()].append(software.name)
+            value = software.name.decode('utf-8', 'ignore')
+            computer["SoftwareList".lower()].append(value)
 
     for column in computer_group.keys():
         # Organiza um dicionário organizado por colunas
@@ -187,6 +188,11 @@ def build_computer_json(computer_group, software_list):
                 if type(value) != int and value is not None:
                     if value.isdigit():
                         value = int(value)
+                    else:
+                        value = value.decode("utf-8", "ignore")
+
+                elif type(value) == str:
+                    value = value.decode(u"tf-8", "ignore")
 
                 if column in convert.keys():
                     # Executa funçao de conversao para atributo
