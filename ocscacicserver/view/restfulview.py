@@ -1,11 +1,11 @@
 #!/bin/env python
 # -*- coding: utf-8 -*-
 __author__ = 'eduardo'
-
 import json
 import zipfile
 import uuid
 import re
+import hashlib
 from pyramid.response import Response
 from ocscacicserver.model import session, tmp_dir
 from logging import getLogger
@@ -165,6 +165,14 @@ def build_computer_json(computer_group, software_list):
         "Win32_DiskDrive".lower(): {},
         "SoftwareList".lower(): []
     }
+
+    # Gera um hash para o id_computador
+    salt = str('salthere').encode('utf-8')
+    id_reg = str(computer_group['hardware_id']).encode('utf-8')
+    id_reg = hashlib.sha512(id_reg)
+    id_reg.update(salt)
+    id_reg = id_reg.hexdigest()
+    computer['hash_machine'] = id_reg
 
     # Primeiro trata dos softwares
     for software in software_list:

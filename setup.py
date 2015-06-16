@@ -14,10 +14,11 @@ requires = [
     'requests',
     'ConfigParser',
     'pymysql',
+    'hashlib'
 ]
 
 setup(name='OCSCacicServer',
-      version='0.1',
+      version='0.2',
       description='OCSCacicServer',
       long_description=README + '\n\n' + CHANGES,
       classifiers=[
