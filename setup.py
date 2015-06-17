@@ -14,7 +14,6 @@ requires = [
     'requests',
     'ConfigParser',
     'pymysql',
-    'hashlib'
 ]
 
 setup(name='OCSCacicServer',

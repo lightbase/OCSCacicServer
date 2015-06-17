@@ -95,7 +95,9 @@ def viewcoleta(request):
                 s.id as storage_id,
                 s.name as win32_diskdrive_caption,
                 s.model as win32_diskdrive_model,
-                s.disksize as win32_diskdrive_size
+                s.disksize as win32_diskdrive_size,
+                h.lastdate as data_ultimo_acesso,
+                h.lastcome as data_coleta
         FROM hardware h
         LEFT JOIN cpus c ON h.id = c.hardware_id
         LEFT JOIN bios b ON b.hardware_id = h.id
@@ -174,11 +176,18 @@ def build_computer_json(computer_group, software_list):
     id_reg = id_reg.hexdigest()
     computer['hash_machine'] = id_reg
 
+    # Data da coleta
+    computer['data_coleta'] = computer_group['data_coleta'].strftime("%d/%m/%Y %H:%M:%S")
+    computer['data_ultimo_acesso'] = computer_group['data_ultimo_acesso'].strftime("%d/%m/%Y %H:%M:%S")
+
     # Primeiro trata dos softwares
     for software in software_list:
         if software.name.lower().find('office') > -1:
             # Adiciona somente os que forem Office
-            value = software.name.decode('utf-8', 'ignore')
+            try:
+                value = software.name.decode('utf-8', 'ignore')
+            except AttributeError as e:
+                value = software.name
             computer["SoftwareList".lower()].append(value)
 
     for column in computer_group.keys():
@@ -197,10 +206,16 @@ def build_computer_json(computer_group, software_list):
                     if value.isdigit():
                         value = int(value)
                     else:
-                        value = value.decode("utf-8", "ignore")
+                        try:
+                            value = value.decode("utf-8", "ignore")
+                        except AttributeError as e:
+                            value = value
 
                 elif type(value) == str:
-                    value = value.decode(u"tf-8", "ignore")
+                    try:
+                        value = value.decode(u"tf-8", "ignore")
+                    except AttributeError as e:
+                        value = value
 
                 if column in convert.keys():
                     # Executa funçao de conversao para atributo
